@@ -19,7 +19,7 @@ import {
   Navigation,
 } from "lucide-react";
 import { useEnCare } from "@/lib/store";
-import { BAG_CATALOG, WASTE_CATEGORIES } from "@/lib/constants";
+import { BAG_CATALOG } from "@/lib/constants";
 import { calculateBagOrderTotalLkr, estimateStopEta } from "@/lib/geo";
 import { BagQuantities, WasteTypeId } from "@/lib/types";
 import LiveTrackingMap from "@/components/map/LiveTrackingMap";
@@ -84,9 +84,6 @@ export default function CustomerPortalPage() {
   }, [activeTripStops, activeCustomer, activeTrip]);
 
   // Form states for pickup confirmation
-  const [selectedWaste, setSelectedWaste] = useState<WasteTypeId[]>(
-    customerStop?.wasteTypes || ["diapers", "sanitary"]
-  );
   const [bagOrder, setBagOrder] = useState<BagQuantities>(
     customerStop?.bagOrder || { small: 0, medium: 0, large: 0 }
   );
@@ -144,12 +141,6 @@ export default function CustomerPortalPage() {
     }
   }
 
-  function toggleWasteType(id: WasteTypeId) {
-    setSelectedWaste((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
-
   function updateBagQty(key: keyof BagQuantities, delta: number) {
     setBagOrder((prev) => ({
       ...prev,
@@ -164,8 +155,7 @@ export default function CustomerPortalPage() {
   function handleConfirmPickup() {
     confirmCustomerPickup({
       customerId: activeCustomer.id,
-      wasteTypes:
-        selectedWaste.length > 0 ? selectedWaste : (["diapers"] as WasteTypeId[]),
+      wasteTypes: customerStop?.wasteTypes || (["diapers", "sanitary"] as WasteTypeId[]),
       bagOrder,
       notes: activeCustomer.landmarkNotes,
     });
@@ -349,34 +339,8 @@ export default function CustomerPortalPage() {
           </span>
         </div>
 
-        {/* Compact Waste Types Chips */}
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-bold text-slate-600">
-            Waste Ready for Pickup:
-          </label>
-          <div className="flex flex-wrap gap-1.5">
-            {WASTE_CATEGORIES.map((cat) => {
-              const active = selectedWaste.includes(cat.id);
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => toggleWasteType(cat.id)}
-                  className={`px-2.5 py-1 rounded-xl text-xs font-medium border transition cursor-pointer ${
-                    active
-                      ? "bg-emerald-600 text-white border-emerald-600 font-semibold"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  {cat.shortLabel}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Optional Bag Replenishment Accordion */}
-        <div className="border-t border-slate-100 pt-2.5">
+        <div className="pt-1">
           <button
             type="button"
             onClick={() => setShowBagSelector(!showBagSelector)}
