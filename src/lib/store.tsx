@@ -153,6 +153,17 @@ interface EnCareContextValue extends EnCareAppState {
     wasteTypes: WasteTypeId[];
     bagOrder: BagQuantities;
   }) => Customer;
+  updateCustomerProfile: (params: {
+    id: string;
+    fullName?: string;
+    phone?: string;
+    district?: string;
+    town?: string;
+    address?: string;
+    landmarkNotes?: string;
+    lat?: number;
+    lng?: number;
+  }) => void;
   optimizeActiveRoute: () => void;
   broadcastTripSchedule: (tripId: string) => NotificationLog[];
   createNewTrip: (params: {
@@ -742,6 +753,28 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
     [persistAndBroadcast]
   );
 
+  const updateCustomerProfile = useCallback(
+    (params: {
+      id: string;
+      fullName?: string;
+      phone?: string;
+      district?: string;
+      town?: string;
+      address?: string;
+      landmarkNotes?: string;
+      lat?: number;
+      lng?: number;
+    }) => {
+      persistAndBroadcast((prev) => ({
+        ...prev,
+        customers: prev.customers.map((c) =>
+          c.id === params.id ? { ...c, ...params } : c
+        ),
+      }));
+    },
+    [persistAndBroadcast]
+  );
+
   const optimizeActiveRoute = useCallback(() => {
     persistAndBroadcast((prev) => {
       const trip =
@@ -874,6 +907,7 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
       markStopUnreachable,
       confirmCustomerPickup,
       registerCustomer,
+      updateCustomerProfile,
       optimizeActiveRoute,
       broadcastTripSchedule,
       createNewTrip,
@@ -895,6 +929,7 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
       markStopUnreachable,
       confirmCustomerPickup,
       registerCustomer,
+      updateCustomerProfile,
       optimizeActiveRoute,
       broadcastTripSchedule,
       createNewTrip,
