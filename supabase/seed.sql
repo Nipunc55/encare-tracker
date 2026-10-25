@@ -18,3 +18,14 @@ INSERT INTO public.trips (id, title, district, corridor_towns, scheduled_date, d
 VALUES
   ('a2222222-2222-4222-8222-222222222201', 'Kegalle → Yatiyantota → Hatton Corridor', 'Kegalle / Nuwara Eliya', ARRAY['Kotiyakumbura', 'Karawanella', 'Yatiyantota', 'Kitulgala', 'Ginigathhena', 'Watawala', 'Hatton'], CURRENT_DATE, 'Kasun Bandara', '+94771122334', 'WP LH-4821', 'active', true, 7.0245, 80.2820, 50, 40, 25)
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.trip_stops (trip_id, customer_id, sequence_order, status, waste_types, bags_collected, order_small, order_medium, order_large, amount_collected_lkr, notes)
+VALUES
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111101', 1, 'completed', ARRAY['diapers', 'sanitary'], 2, 2, 1, 0, 1250, 'Collected 2 sealed bags. Paid cash.'),
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111102', 2, 'completed', ARRAY['diapers', 'catheter', 'dressings'], 3, 0, 2, 1, 2420, 'Elderly care home pickup complete.'),
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111103', 3, 'approaching', ARRAY['diapers', 'sanitary', 'medicines'], 0, 1, 1, 0, 0, 'Please honk twice at the white gate.'),
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111104', 4, 'confirmed', ARRAY['diapers', 'ppe'], 0, 2, 0, 0, 0, 'Keep bags at front porch if raining.'),
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111105', 5, 'confirmed', ARRAY['catheter', 'dressings', 'medicines'], 0, 0, 1, 1, 0, ''),
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111106', 6, 'pending', ARRAY['diapers', 'sanitary'], 0, 1, 0, 0, 0, ''),
+  ('a2222222-2222-4222-8222-222222222201', 'c1111111-1111-4111-8111-111111111107', 7, 'confirmed', ARRAY['diapers', 'catheter', 'dressings', 'sharps_hair'], 0, 2, 2, 2, 0, 'Clinic back entrance on Dunbar Rd.')
+ON CONFLICT (trip_id, customer_id) DO NOTHING;

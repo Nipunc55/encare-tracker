@@ -23,6 +23,14 @@ import {
 } from "./geo";
 import { isSupabaseConfigured, supabase } from "./supabase";
 import {
+  customerFromRow,
+  customerToRow,
+  stopFromRow,
+  stopToRow,
+  tripFromRow,
+  tripToRow,
+} from "./supabaseAdapter";
+import {
   BagQuantities,
   Customer,
   EnCareAppState,
@@ -213,6 +221,77 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
       channelRef.current = bc;
       return () => bc.close();
     }
+  }, []);
+
+  // Fetch live database records from Supabase on mount
+  useEffect(() => {
+    const client = supabase;
+    if (!isSupabaseConfigured || !client) return;
+
+    async function loadFromSupabase() {
+      if (!client) return;
+      try {
+        const [tripsRes, custsRes, stopsRes] = await Promise.all([
+          client.from("trips").select("*").order("scheduled_date", { ascending: false }),
+          client.from("customers").select("*"),
+          client.from("trip_stops").select("*").order("sequence_order", { ascending: true }),
+        ]);
+
+        if (tripsRes.data && tripsRes.data.length > 0) {
+          const loadedTrips = tripsRes.data.map(tripFromRow);
+          const loadedCusts = (custsRes.data || []).map(customerFromRow);
+          const loadedStops = (stopsRes.data || []).map(stopFromRow);
+
+          setState((prev) => ({
+            ...prev,
+            trips: loadedTrips,
+            customers: loadedCusts.length > 0 ? loadedCusts : prev.customers,
+            stops: loadedStops.length > 0 ? loadedStops : prev.stops,
+            activeTripId: loadedTrips[0]?.id || prev.activeTripId,
+            activeCustomerId: loadedCusts[0]?.id || prev.activeCustomerId,
+          }));
+        }
+      } catch (err) {
+        console.warn("Supabase initial load fallback:", err);
+      }
+    }
+
+    loadFromSupabase();
+
+    // Subscribe to Postgres Changes for multi-device sync
+    const dbChangesChannel = client
+      .channel("encare-db-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trip_stops" },
+        (payload) => {
+          if (payload.new && (payload.new as any).id) {
+            const updated = stopFromRow(payload.new);
+            setState((prev) => ({
+              ...prev,
+              stops: prev.stops.map((s) => (s.id === updated.id ? updated : s)),
+            }));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trips" },
+        (payload) => {
+          if (payload.new && (payload.new as any).id) {
+            const updated = tripFromRow(payload.new);
+            setState((prev) => ({
+              ...prev,
+              trips: prev.trips.map((t) => (t.id === updated.id ? updated : t)),
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(dbChangesChannel);
+    };
   }, []);
 
   // Optional Supabase Ephemeral Broadcast Channel (0 DB write cost for live GPS)
@@ -557,6 +636,24 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
         };
       });
 
+      if (isSupabaseConfigured && supabase) {
+        const client = supabase;
+        client
+          .from("trip_stops")
+          .update({
+            status: "completed",
+            bags_collected: params.bagsCollected,
+            order_small: params.bagOrder.small,
+            order_medium: params.bagOrder.medium,
+            order_large: params.bagOrder.large,
+            amount_collected_lkr: calculateBagOrderTotalLkr(params.bagOrder),
+            notes: params.notes ?? "",
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", params.stopId)
+          .then(() => {}, () => {});
+      }
+
       return generatedLogs;
     },
     [persistAndBroadcast]
@@ -688,6 +785,25 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
           stops: [...prev.stops, newStop],
         };
       });
+
+      if (isSupabaseConfigured && supabase) {
+        const client = supabase;
+        client
+          .from("trip_stops")
+          .upsert(
+            {
+              trip_id: state.activeTripId,
+              customer_id: params.customerId,
+              status: "confirmed",
+              order_small: params.bagOrder.small,
+              order_medium: params.bagOrder.medium,
+              order_large: params.bagOrder.large,
+              notes: params.notes,
+            },
+            { onConflict: "trip_id,customer_id" }
+          )
+          .then(() => {}, () => {});
+      }
     },
     [persistAndBroadcast]
   );
@@ -771,6 +887,14 @@ export function EnCareProvider({ children }: { children: React.ReactNode }) {
           c.id === params.id ? { ...c, ...params } : c
         ),
       }));
+
+      if (isSupabaseConfigured && supabase) {
+        supabase
+          .from("customers")
+          .update(customerToRow(params))
+          .eq("id", params.id)
+          .then(() => {}, () => {});
+      }
     },
     [persistAndBroadcast]
   );
