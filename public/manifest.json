@@ -1,0 +1,18 @@
+{
+  "name": "EnCare Tracker — Sanitary & Clinical Waste Dispatch",
+  "short_name": "EnCare",
+  "description": "Free door-to-door sanitary, diaper, and domestic clinical waste collection tracker in Sri Lanka",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#064e3b",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
